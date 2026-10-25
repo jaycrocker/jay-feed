@@ -24,10 +24,10 @@
   --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
 }
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
-body { background: var(--night); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; overflow: hidden; -webkit-tap-highlight-color: transparent; }
-.app { height: 100%; display: grid; grid-template-rows: auto 1fr; max-width: 480px; margin: 0 auto; }
-header { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); }
+html, body { height: 100%; margin: 0; background: var(--night); overflow: hidden; overscroll-behavior: none; }
+body { color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+.app { position: fixed; inset: 0; height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); max-width: 480px; margin: 0 auto; background: var(--night); }
+header { position: relative; z-index: 5; background: var(--night); padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); }
 .brand { font-family: var(--display); font-weight: 800; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
 .brand span { color: var(--glow); }
 .iconbtn { font: inherit; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--soft); cursor: pointer; }
@@ -70,6 +70,9 @@ textarea, input[type="search"] { font: inherit; font-size: 0.95rem; width: 100%;
 .rail button[aria-pressed="true"] { background: var(--glow); border-color: var(--glow); color: var(--night); }
 .rail small { font-family: var(--mono); font-size: 0.62rem; color: var(--soft); margin-top: -10px; }
 .pos { font-family: var(--mono); font-size: 0.7rem; color: var(--soft); }
+.new { justify-self: start; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--night); background: var(--gold); border-radius: 999px; padding: 3px 9px; }
+.newdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); margin-right: 6px; vertical-align: middle; }
+.count.has { color: var(--night); background: var(--gold); border-radius: 999px; padding: 1px 6px; margin-left: 6px; }
 
 .empty, .tell { min-height: 100%; scroll-snap-align: start; display: grid; align-content: center; gap: 14px; padding: 40px max(20px, env(safe-area-inset-right, 0px)) 40px max(20px, env(safe-area-inset-left, 0px)); }
 .empty h2, .tell h2 { font-family: var(--display); font-weight: 800; font-size: 1.8rem; margin: 0; text-wrap: balance; }
@@ -140,12 +143,36 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
     return '<svg viewBox="0 0 640 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="g' + i + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + p[0] + '"/><stop offset="0.55" stop-color="' + p[1] + '"/><stop offset="1" stop-color="' + p[2] + '"/></linearGradient></defs><rect width="640" height="900" fill="url(#g' + i + ')"/>' + m + '</svg>';
   }
 
+  // ---- what is new: a card (or a new team reply on it) counts as seen once it has been on screen for a second ----
+  var seen = {};
+  try { seen = JSON.parse(ls("feed-seen") || "{}") || {}; } catch (e) { seen = {}; }
+  function sig(c) { return (c.teamReply ? "r" + c.teamReply.length + ":" + c.teamReply.slice(0, 20) : "c"); }
+  function isNew(c) { return seen[c.id] !== sig(c); }
+  function markSeen(id) { var c = card(id); if (!c || !isNew(c)) return; seen[c.id] = sig(c); ls("feed-seen", JSON.stringify(seen)); counts(); var b = document.getElementById("new-" + id); if (b) { b.textContent = "Seen"; b.style.opacity = "0.4"; } }
+  var watcher = ("IntersectionObserver" in window) ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      var id = en.target.dataset.id;
+      if (en.isIntersecting && en.intersectionRatio >= 0.6) en.target._t = setTimeout(function () { markSeen(id); }, 1000);
+      else clearTimeout(en.target._t);
+    });
+  }, { root: feed, threshold: [0, 0.6] }) : null;
+  function counts() {
+    var list = open(), fresh = list.filter(isNew).length;
+    var replies = cards.filter(function (c) { return answered(c) && c.teamReply && isNew(c); }).length;
+    var n = document.getElementById("n-feed");
+    n.textContent = api ? (fresh ? fresh + " new" : String(list.length)) : "";
+    n.className = "count" + (fresh ? " has" : "");
+    var d = document.getElementById("tab-done");
+    d.innerHTML = "Answered" + (replies ? '<span class="count has">' + replies + '</span>' : "");
+    try { if (navigator.setAppBadge) { if (fresh + replies) navigator.setAppBadge(fresh + replies); else navigator.clearAppBadge(); } } catch (e) {}
+  }
+
   function live(c) { return !(c.expires && Date.parse(c.expires) < Date.now()); }
   function answered(c) { return Boolean(c.answer && c.answer.choice); }
   function open() { return cards.filter(function (c) { return live(c) && !answered(c); }).sort(function (a, b) { return (b.order || 0) - (a.order || 0) || String(b.created || "").localeCompare(String(a.created || "")); }); }
 
   function render() {
-    document.getElementById("n-feed").textContent = api ? " " + open().length : "";
+    counts();
     feed.classList.toggle("list", view !== "feed");
     if (!api || !key) { feed.innerHTML = '<div class="setup"><h2>Open your setup link once.</h2><p>Your team sent a link that starts this app with your key - open it on this phone, then tap Install. The key stays on this phone.</p></div>'; return; }
     if (view === "tell") return renderTell();
@@ -158,12 +185,13 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
         if (x.url) return '<a class="btn' + (j === 0 ? " primary" : "") + '" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.label) + ' ↗</a>';
         return '<button type="button" class="btn' + (j === 0 ? " primary" : "") + '" data-act="answer" data-id="' + esc(c.id) + '" data-answer="' + esc(x.answer || x.label) + '" data-quiet="' + (x.quiet ? "1" : "") + '">' + esc(x.label) + '</button>';
       }).join("");
-      return '<article class="card" id="c-' + esc(c.id) + '">' +
+      return '<article class="card" id="c-' + esc(c.id) + '" data-id="' + esc(c.id) + '">' +
         '<div class="art">' + art(c, i) + '</div><div class="shade"></div>' +
         '<div class="rail"><button type="button" data-act="love" data-id="' + esc(c.id) + '" aria-pressed="' + Boolean(a.loved) + '" aria-label="Love this">♥</button><small>love</small>' +
         (c.more ? '<button type="button" data-act="more" data-id="' + esc(c.id) + '" aria-label="Dive in">⤢</button><small>dive in</small>' : '') +
         '<button type="button" data-act="focus" data-id="' + esc(c.id) + '" aria-label="Reply">✎</button><small>reply</small></div>' +
         '<div class="content">' +
+          (isNew(c) ? '<span class="new" id="new-' + esc(c.id) + '">' + (c.teamReply && seen[c.id] ? "New reply" : "New") + '</span>' : '') +
           '<div class="who"><span class="dot" style="background:' + au[0] + '">' + au[1] + '</span>' + esc(c.author || "Your team") + (c.kind ? ' · ' + esc(c.kind) : '') + '</div>' +
           (c.big ? '<div class="big">' + esc(c.big) + '</div>' : '') +
           '<h2 class="title">' + esc(c.title) + '</h2>' +
@@ -176,6 +204,7 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
           '<div class="row" style="justify-content:space-between"><span class="status" id="s-' + esc(c.id) + '">' + (a.text ? "✓ Reply sent" : "") + '</span><span class="pos">' + (i + 1) + ' / ' + list.length + '</span></div>' +
         '</div></article>';
     }).join("") + '<div class="empty"><h2>That\'s everything for now.</h2><p>Swipe back up, or use Tell us to send the team anything on your mind.</p></div>';
+    if (watcher) { watcher.disconnect(); feed.querySelectorAll(".card").forEach(function (el) { watcher.observe(el); }); }
   }
 
   function renderDone() {
@@ -188,13 +217,14 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
     feed.innerHTML = '<div class="listwrap"><input type="search" id="search" placeholder="Search everything - titles, messages, your replies" aria-label="Search the feed" value="' + esc(query) + '">' +
       (list.length ? list.map(function (c) {
         var a = c.answer || {};
-        return '<details class="item"><summary><span class="t">' + hi(c.title) + '</span><span class="meta"><span>' + esc(c.kind || "") + '</span>' +
+        return '<details class="item" data-id="' + esc(c.id) + '"><summary><span class="t">' + (c.teamReply && isNew(c) ? '<span class="newdot" aria-label="New reply"></span>' : '') + hi(c.title) + '</span><span class="meta"><span>' + esc(c.kind || "") + '</span>' +
           (a.choice ? '<span class="ans">✓ ' + hi(a.choice) + '</span>' : (live(c) ? '<span>open</span>' : '<span>retired</span>')) +
           '<span>' + when(a.at || c.created) + '</span>' + (a.loved ? '<span>♥</span>' : '') + '</span></summary>' +
           '<div class="in">' + (c.body ? '<div>' + hi(c.body) + '</div>' : '') + (c.copy ? '<div class="copybox"><div class="txt">' + hi(c.copy) + '</div></div>' : '') +
           (a.text ? '<div class="teamreply"><b>You</b>' + hi(a.text) + '</div>' : '') + (c.teamReply ? '<div class="teamreply"><b>Your team</b>' + hi(c.teamReply) + '</div>' : '') +
           ((c.actions || []).filter(function (x) { return x.url; }).map(function (x) { return '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.label) + ' ↗</a>'; }).join(" ")) + '</div></details>';
       }).join("") : '<div class="empty" style="min-height:auto"><p>' + (query ? "Nothing matches that yet." : "Cards you answer move here, so you can find them again.") + '</p></div>') + '</div>';
+    feed.querySelectorAll("details.item").forEach(function (d) { d.addEventListener("toggle", function () { if (d.open) markSeen(d.dataset.id); }); });
     var s = document.getElementById("search");
     s.addEventListener("input", function () { query = s.value.trim(); var pos = s.selectionStart; renderDone(); var n = document.getElementById("search"); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} });
   }
@@ -236,7 +266,7 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
       post({ op: "answer", id: id, choice: ans, quiet: quiet }).then(function (d) {
         if (c) c.answer = d.answer;
         status(id, "✓ " + ans + (quiet ? "" : " - the team is on it"));
-        setTimeout(function () { var el = document.getElementById("c-" + id); var nx = el && el.nextElementSibling; render(); if (nx && nx.id) { var t = document.getElementById(nx.id); if (t) t.scrollIntoView(); } }, 900);
+        setTimeout(function () { var el = document.getElementById("c-" + id); var nx = el && el.nextElementSibling; var nid = nx && nx.id; render(); var t = nid && document.getElementById(nid); feed.scrollTop = t ? t.offsetTop : feed.scrollTop; }, 900);
       }).catch(function () { status(id, "Couldn't save - check your signal and tap again", true); });
     } else if (act === "love") {
       var on = !((c && c.answer) || {}).loved; b.setAttribute("aria-pressed", String(on));
