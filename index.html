@@ -14,7 +14,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,600&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Version 2 (25 October 2026, Jay's feedback): a clean top, the tabs at the bottom like any phone app, short cards
+/* Version 3 (25 October 2026, Jay's pick): a Home tab first - the calm glance and the tiles.
+   Version 2 (25 October 2026, Jay's feedback): a clean top, the tabs at the bottom like any phone app, short cards
    with the detail one tap away, a separate conversation for each card, and real visuals (progress, timelines, bars,
    photos) as well as the first-light backgrounds he loves. */
 :root {
@@ -113,7 +114,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .bars .t i { display: block; height: 100%; border-radius: 99px; }
 
 /* ---- bottom tabs ---- */
-nav { position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: var(--nav); padding-bottom: env(safe-area-inset-bottom, 0px); display: grid; grid-template-columns: repeat(3, 1fr); background: #0a1117f2; border-top: 1px solid var(--line); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+nav { position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: var(--nav); padding-bottom: env(safe-area-inset-bottom, 0px); display: grid; grid-template-columns: repeat(4, 1fr); background: #0a1117f2; border-top: 1px solid var(--line); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 nav button { border: 0; background: transparent; color: var(--faint); display: grid; justify-items: center; align-content: center; gap: 3px; font-size: 0.7rem; letter-spacing: 0.02em; cursor: pointer; position: relative; }
 nav button[aria-selected="true"] { color: var(--ink); }
 nav button[aria-selected="true"] svg { stroke: var(--glow); }
@@ -167,6 +168,49 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
 .empty { height: 100%; scroll-snap-align: start; display: grid; align-content: center; gap: 12px; padding: var(--top) var(--gut) 30px; }
 .empty h2 { font-family: var(--display); font-weight: 800; font-size: 1.8rem; margin: 0; text-wrap: balance; }
 .empty p { color: var(--soft); margin: 0; }
+/* ---- Home (version 3, Jay's pick 25 October 2026: "1 and 3" - the calm glance and the tiles; not a calendar,
+   an overview of what is outstanding, his links in one place, and friends this week) ---- */
+.home { min-height: 100%; padding: calc(var(--top) + 6px) var(--gut) 30px; display: grid; gap: 12px; align-content: start; }
+.hello { display: grid; gap: 2px; margin: 4px 0 2px; }
+.hello small { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); }
+.hello h2 { font-family: var(--display); font-weight: 800; font-size: 1.7rem; line-height: 1.15; margin: 0; text-wrap: balance; }
+.glance { position: relative; overflow: hidden; border-radius: 22px; padding: 18px; background: linear-gradient(160deg, #1d2f4a 0%, #6b4f86 70%, #e0789a 130%); display: grid; gap: 4px; border: 0; text-align: left; width: 100%; color: var(--ink); cursor: pointer; }
+.glance::after { content: ""; position: absolute; right: -40px; top: -40px; width: 150px; height: 150px; border-radius: 50%; background: #f6c58f; opacity: 0.85; box-shadow: 0 0 0 30px #f6c58f22; }
+.glance > * { position: relative; z-index: 1; max-width: 78%; }
+.glance small { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: #ffffffcc; }
+.glance b { font-family: var(--display); font-weight: 800; font-size: clamp(2.6rem, 14vw, 3.6rem); line-height: 0.95; letter-spacing: -0.03em; }
+.glance h3 { font-family: var(--display); font-weight: 800; font-size: 1.25rem; line-height: 1.2; margin: 4px 0 0; overflow-wrap: anywhere; }
+.glance p { margin: 0; color: #ffffffd9; font-size: 0.92rem; overflow-wrap: anywhere; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 14px; display: grid; gap: 8px; align-content: start; min-width: 0; text-align: left; color: var(--ink); text-decoration: none; font-size: 0.92rem; }
+.tile.wide { grid-column: 1 / -1; }
+button.tile, a.tile { cursor: pointer; }
+.tile .k { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); }
+.tile .k em { font-style: normal; color: var(--gold); letter-spacing: 0.04em; }
+.tile .num { font-family: var(--display); font-weight: 800; font-size: 2.2rem; line-height: 1; letter-spacing: -0.02em; }
+.tile .sub { color: var(--soft); font-size: 0.85rem; overflow-wrap: anywhere; }
+.todo { display: grid; gap: 6px; }
+.todo button, .todo a { width: 100%; display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; text-align: left; border: 0; background: var(--panel2); border-radius: 12px; padding: 10px 12px; color: var(--ink); text-decoration: none; cursor: pointer; font-size: 0.92rem; }
+.todo i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--glacier); }
+.todo .hot i { border-color: var(--gold); background: #f1b34a33; }
+.todo span { overflow-wrap: anywhere; }
+.todo time { font-family: var(--mono); font-size: 0.66rem; color: var(--soft); white-space: nowrap; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.week div { display: grid; justify-items: center; gap: 5px; font-family: var(--mono); font-size: 0.62rem; color: var(--soft); }
+.week i { width: 100%; aspect-ratio: 1; max-width: 38px; border-radius: 12px; background: #ffffff10; border: 2px solid #ffffff1c; display: grid; place-items: center; font-style: normal; font-family: var(--display); font-weight: 800; font-size: 0.8rem; color: var(--night); }
+.week .on i { background: var(--leaf); border-color: var(--leaf); }
+.week .maybe i { background: #f1b34a33; border-color: var(--gold); color: var(--gold); }
+.week .today { color: var(--ink); }
+.plans { display: grid; gap: 4px; }
+.plans div { display: grid; grid-template-columns: 38px 1fr; gap: 8px; font-size: 0.88rem; }
+.plans b { font-family: var(--mono); font-size: 0.68rem; color: var(--soft); font-weight: 500; padding-top: 2px; }
+.plans .w { color: var(--gold); }
+.quiet { display: flex; flex-wrap: wrap; gap: 6px; }
+.quiet span { font-size: 0.78rem; padding: 3px 10px; border-radius: 999px; background: #ffffff10; color: var(--soft); }
+.cd .num { color: var(--gold); }
+.lk { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 1rem; }
+.lk .e { font-size: 1.5rem; }
+.updated { font-family: var(--mono); font-size: 0.62rem; color: var(--faint); text-align: center; padding-top: 4px; }
 .install { border: 1px dashed #ffffff33; border-radius: 16px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
 @media (prefers-reduced-motion: reduce) { .sheet, .scrim { transition: none; } .round.spin svg { animation: none; } }
 </style>
@@ -179,7 +223,8 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
   </div>
   <main class="feed" id="feed" aria-live="polite"><div class="empty"><h2>Your feed is waking up.</h2><p>Fetching your cards from your team.</p></div></main>
   <nav role="tablist" aria-label="Views">
-    <button type="button" role="tab" id="tab-feed" aria-selected="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l2.2 5.6L20 9.5l-4.5 3.8L17 19l-5-3.1L7 19l1.5-5.7L4 9.5l5.8-.9z"/></svg>For you</button>
+    <button type="button" role="tab" id="tab-home" aria-selected="true"><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Home</button>
+    <button type="button" role="tab" id="tab-feed" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l2.2 5.6L20 9.5l-4.5 3.8L17 19l-5-3.1L7 19l1.5-5.7L4 9.5l5.8-.9z"/></svg>For you</button>
     <button type="button" role="tab" id="tab-done" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Answered<span class="badge" id="b-done"></span></button>
     <button type="button" role="tab" id="tab-tell" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><path d="M5 18l-1 3 4-2h9a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v9"/></svg>Tell us</button>
   </nav>
@@ -190,7 +235,7 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
 <script>
 (function () {
   var feed = document.getElementById("feed"), sheet = document.getElementById("sheet"), scrim = document.getElementById("scrim");
-  var cards = [], notes = [], view = "feed", query = "", api = "", key = "", lastError = "", sheetFor = null, sheetMode = "";
+  var cards = [], notes = [], view = "home", query = "", api = "", key = "", lastError = "", sheetFor = null, sheetMode = "";
   var AUTH = { Navigator: ["var(--glow)", "N"], Operator: ["var(--glacier)", "O"], Builder: ["var(--gold)", "B"], Oogway: ["var(--leaf)", "O"], Shifu: ["var(--glow)", "S"], "Your team": ["var(--ink)", "T"] };
   var STYLES = { dawn: ["#1d2f4a", "#6b4f86", "#e0789a", "#f6c58f"], glacier: ["#08202a", "#145466", "#3fa3b6", "#bfe9f0"], gold: ["#1f1608", "#6b4310", "#d08a22", "#ffd98a"], forest: ["#07160f", "#16432c", "#3f8f5f", "#b9edc9"], night: ["#05080c", "#1a2340", "#3a3f7a", "#9aa6ff"], rose: ["#1c0c14", "#5c1f3c", "#c84a7a", "#ffc2d6"] };
   var QUIET = /^(ha|nice|let's go|sitting with it|love it|good|got it|watched it)$/i;
@@ -288,7 +333,8 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
 
   function live(c) { return !(c.expires && Date.parse(c.expires) < Date.now()); }
   function answered(c) { return Boolean(c.answer && c.answer.choice); }
-  function open() { return cards.filter(function (c) { return live(c) && !answered(c); }).sort(function (a, b) { return (b.order || 0) - (a.order || 0) || String(b.created || "").localeCompare(String(a.created || "")); }); }
+  function isHome(c) { return c.kind === "Home" || c.id === "home"; }
+  function open() { return cards.filter(function (c) { return live(c) && !answered(c) && !isHome(c); }).sort(function (a, b) { return (b.order || 0) - (a.order || 0) || String(b.created || "").localeCompare(String(a.created || "")); }); }
 
   function render() {
     counts();
@@ -296,6 +342,7 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
     if (!api || !key) { feed.innerHTML = '<div class="empty"><h2>Open your setup link once.</h2><p>Your team sent a link that starts this app with your key - open it on this phone. The key stays on this phone.</p></div>'; return; }
     if (view === "tell") return renderTell();
     if (view === "done") return renderDone();
+    if (view === "home") return renderHome();
     var list = open();
     if (!list.length) { feed.innerHTML = '<div class="empty"><h2>' + (lastError ? "Can't reach your team right now." : "All caught up.") + '</h2><p>' + (lastError ? esc(lastError) : "Nothing waiting. Go and do something you love. New cards land after the Morning and the Evening, and whenever the team finishes something.") + '</p></div>'; return; }
     feed.innerHTML = list.map(function (c, i) {
@@ -329,9 +376,52 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
     if (watcher) { watcher.disconnect(); feed.querySelectorAll(".card").forEach(function (el) { watcher.observe(el); }); }
   }
 
+  // ---- Home: one card with id "home" holds it - {"kind":"Home","home":{next, outstanding, people, countdowns, links}}
+  // (system/feed.md in jay-assistant). The team rewrites it every Morning and Evening and whenever something changes.
+  function daysTo(d) { var t = new Date(d + (String(d).length === 10 ? "T00:00:00" : "")); if (isNaN(t)) return null; var a = new Date(); a.setHours(0, 0, 0, 0); t.setHours(0, 0, 0, 0); return Math.round((t - a) / 864e5); }
+  function homeLink(x, inner, cls) {
+    if (x.card && card(x.card)) return '<button type="button" class="' + (cls || "") + '" data-act="more" data-id="' + esc(x.card) + '">' + inner + '</button>';
+    var u = safeUrl(x.url);
+    if (u) return '<a class="' + (cls || "") + '" href="' + esc(u) + '" target="_blank" rel="noopener">' + inner + '</a>';
+    return '<button type="button" class="' + (cls || "") + '" data-act="gofeed">' + inner + '</button>';
+  }
+  function renderHome() {
+    var hc = card("home"), h = (hc && hc.home) || null, now = new Date(), hr = now.getHours();
+    var hello = '<div class="hello"><small>' + esc(now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })) + '</small><h2>' + (hr < 12 ? "Good morning, Jay." : hr < 18 ? "Good afternoon, Jay." : "Good evening, Jay.") + '</h2></div>';
+    if (!h) { feed.innerHTML = '<div class="home">' + hello + '<div class="tile wide"><div class="k">Home</div><div class="sub">Your team is setting this up - it fills with the next Morning or Evening.</div></div></div>'; return; }
+    var waiting = open().length, out = '';
+    var nx = h.next;
+    if (nx) out += homeLink(nx, '<small>' + esc(nx.label || "Next") + '</small>' + (nx.time ? '<b>' + esc(nx.time) + '</b>' : '') + '<h3>' + esc(nx.title || "") + '</h3>' + (nx.note ? '<p>' + fmt(nx.note) + '</p>' : ''), "glance");
+    out += '<div class="tiles">';
+    var od = (h.outstanding || []).slice(0, 8);
+    if (od.length) out += '<div class="tile wide"><div class="k">Outstanding<em>' + od.length + (h.outstandingMore ? " + " + Number(h.outstandingMore) : "") + '</em></div><div class="todo">' +
+      od.map(function (x) { return homeLink(x, '<i></i><span>' + esc(x.label) + '</span><time>' + esc(x.when || "") + '</time>', x.hot ? "hot" : ""); }).join("") + '</div></div>';
+    var pp = h.people;
+    if (pp) {
+      var days = pp.week || [], todayKey = now.toLocaleDateString("en-GB", { weekday: "short" });
+      var withSomeone = days.filter(function (d) { return d.status === "on"; }).length;
+      out += '<div class="tile wide"><div class="k">Friends this week<em>' + withSomeone + ' of ' + (days.length || 7) + ' days</em></div>' +
+        '<div class="week">' + days.map(function (d) { return '<div class="' + (d.status || "") + (d.day === todayKey ? " today" : "") + '"><i>' + (d.status === "on" ? "✓" : d.status === "maybe" ? "?" : "") + '</i>' + esc(d.day) + '</div>'; }).join("") + '</div>' +
+        (days.some(function (d) { return d.label; }) ? '<div class="plans">' + days.filter(function (d) { return d.label; }).map(function (d) { return '<div><b>' + esc(d.day) + '</b><span' + (d.status === "maybe" ? ' class="w"' : '') + '>' + esc(d.label) + '</span></div>'; }).join("") + '</div>' : '') +
+        ((pp.quiet || []).length ? '<div class="sub">Not seen in a while</div><div class="quiet">' + pp.quiet.map(function (q) { return '<span>' + esc(q) + '</span>'; }).join("") + '</div>' : '') + '</div>';
+    }
+    (h.countdowns || []).slice(0, 4).forEach(function (c) {
+      var n = daysTo(c.date); if (n === null || n < 0) return;
+      out += '<div class="tile cd"><div class="k">' + (n === 0 ? "Today" : n === 1 ? "Tomorrow" : "Days to go") + '</div><div class="num">' + (n > 1 ? n : "★") + '</div><div class="sub">' + esc(c.label) + '</div></div>';
+    });
+    out += '<button type="button" class="tile" data-act="gofeed"><div class="k">For you</div><div class="num">' + waiting + '</div><div class="sub">' + (waiting === 1 ? "card waiting" : "cards waiting") + '</div></button>';
+    (h.links || []).slice(0, 8).forEach(function (l) {
+      var u = safeUrl(l.url); if (!u) return;
+      out += '<a class="tile" href="' + esc(u) + '" target="_blank" rel="noopener"><div class="lk"><span class="e" aria-hidden="true">' + esc(l.icon || "↗") + '</span>' + ICON.out + '</div><div class="lk">' + esc(l.label) + '</div>' + (l.note ? '<div class="sub">' + esc(l.note) + '</div>' : '') + '</a>';
+    });
+    out += '</div>' + (h.updated || hc.created ? '<div class="updated">Updated by your team · ' + esc(when(h.updated || hc.created)) + '</div>' : '');
+    feed.innerHTML = '<div class="home">' + hello + out + '</div>';
+  }
+
   function renderDone() {
     var q = query.toLowerCase();
     var list = cards.filter(function (c) {
+      if (isHome(c)) return false;
       if (!q) return answered(c) || !live(c);
       var a = c.answer || {};
       return [c.title, c.body, c.more, c.copy, c.kind, c.author, a.choice, thread(c).map(function (m) { return m.text; }).join(" ")].join(" ").toLowerCase().indexOf(q) !== -1;
@@ -415,7 +505,7 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
         lastError = ""; cards = d.cards || []; notes = d.notes || [];
         ls("feed-cache", JSON.stringify({ cards: cards, notes: notes }));
         if (sheetFor && sheetMode === "chat") { var ch = document.getElementById("chat"), c = card(sheetFor); if (ch && c && thread(c).length) { ch.innerHTML = thread(c).map(bubble).join(""); markSeen(sheetFor); } }
-        if (!document.activeElement || !/TEXTAREA|INPUT/.test(document.activeElement.tagName)) { var top = feed.scrollTop; if (view === "feed") { render(); feed.scrollTop = top; } else if (view === "done" && !query) renderDone(); else counts(); }
+        if (!document.activeElement || !/TEXTAREA|INPUT/.test(document.activeElement.tagName)) { var top = feed.scrollTop; if (view === "feed" || view === "home") { render(); feed.scrollTop = top; } else if (view === "done" && !query) renderDone(); else counts(); }
       })
       .catch(function (e) { lastError = e.message || "No connection - showing what was here last."; if (!cards.length) render(); })
       .then(function () { refreshBtn.classList.remove("spin"); });
@@ -442,7 +532,8 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
     } else if (act === "love") {
       var on = !((c && c.answer) || {}).loved; b.setAttribute("aria-pressed", String(on));
       post({ op: "answer", id: id, loved: on, quiet: true }).then(function (d) { if (c) c.answer = d.answer; }).catch(function () { b.setAttribute("aria-pressed", String(!on)); status(id, "Couldn't save", true); });
-    } else if (act === "more") openSheet(id, "more");
+    } else if (act === "gofeed") { document.getElementById("tab-feed").click(); }
+    else if (act === "more") openSheet(id, "more");
     else if (act === "chat") openSheet(id, "chat");
     else if (act === "close") closeSheet();
     else if (act === "send") {
@@ -472,7 +563,7 @@ mark { background: var(--gold); color: var(--night); border-radius: 3px; padding
     }
   });
 
-  ["feed", "done", "tell"].forEach(function (v) {
+  ["home", "feed", "done", "tell"].forEach(function (v) {
     document.getElementById("tab-" + v).addEventListener("click", function () {
       if (view === v) { feed.scrollTo({ top: 0, behavior: "smooth" }); return; }
       view = v;
