@@ -414,6 +414,7 @@
   }
   function motifSvg(t, c) {
     var a = t.accent, k = t.ink, m = c.motif || t.motif;
+    if (c.art && /^art\/[a-z0-9-]+\.svg$/.test(c.art)) return c.artStyle ? '<img class="motif" alt="" src="' + c.art + '" style="' + esc(c.artStyle) + '">' : '<img class="motif art-top" alt="" src="' + c.art + '">';
     if (c.artSvg && /^<svg[\s>]/i.test(String(c.artSvg).trim())) {
       var src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(c.artSvg);
       // a post's own illustration sits in the space above its words and sizes itself to fit (art-top), unless the designer placed it
