@@ -164,10 +164,11 @@
     (h.highlights || []).forEach(function (x) { if (x.until && daysTo(x.until) !== null && daysTo(x.until) < 0) return; out += highlight(x); });
     out += teamBlock(h.team);
     out += todoBlock(h.todo || h.outstanding || [], h.todoMore || h.outstandingMore);
+    out += aheadBlock(h.ahead || [], d);
     out += friendsBlock(h.people, d);
     out += dfyBlock(h.done || []);
     out += countdownBlock(h.countdowns || []);
-    out += boardsBlock(h.boards || (h.links || []).map(function (l) { return { label: l.label, url: l.url, icon: guessIcon(l.label), permanent: true }; }));
+    out += boardsBlock(h.boards || (h.links || []).map(function (l) { return { label: l.label, url: l.url, icon: guessIcon(l.label), permanent: true }; }), h.archive);
     out += '<button type="button" class="updated" data-act="refresh">' + (h.updated || hc.created ? "Updated " + esc(when(h.updated || hc.created)) + " by your team · tap to refresh" : "Tap to refresh") + '</button>';
     var keep = feed.scrollTop;
     feed.innerHTML = '<div class="home">' + out + '</div>';
@@ -313,19 +314,65 @@
     if (/far|progress|score/.test(l)) return "progress"; if (/home|place|barn/.test(l)) return "home"; if (/plan|week|calendar/.test(l)) return "plan";
     if (/af8|study|learn|exam/.test(l)) return "learn"; if (/map|trip|bansko|travel/.test(l)) return "map"; if (/deck|pitch|explain/.test(l)) return "deck"; return "";
   }
-  function boardsBlock(list) {
-    list = list.filter(function (b) { return safeUrl(b.url) && !(b.until && /^\d{4}-\d{2}-\d{2}/.test(b.until) && daysTo(b.until) < 0); });
-    if (!list.length) return "";
+  var pastBoards = [];
+  function boardsBlock(list, archive) {
+    var good = list.filter(function (b) { return safeUrl(b.url); });
+    var isPast = function (b) { return b.until && /^\d{4}-\d{2}-\d{2}/.test(b.until) && daysTo(b.until) < 0; };
+    pastBoards = good.filter(function (b) { return !b.permanent && isPast(b); }).concat((archive || []).filter(function (b) { return safeUrl(b.url); }));
+    var seenUrl = {}; pastBoards = pastBoards.filter(function (b) { if (seenUrl[b.url]) return false; seenUrl[b.url] = 1; return true; });
+    list = good.filter(function (b) { return !isPast(b); });
+    if (!list.length && !pastBoards.length) return "";
     var tmp = list.filter(function (b) { return !b.permanent; }), perm = list.filter(function (b) { return b.permanent; }), out = "";
-    if (tmp.length) out += '<div><div class="lab out">Boards for now</div><div class="boards-tmp">' + tmp.map(function (b) {
-      var until = b.untilLabel || (b.until ? (/^\d{4}-\d{2}-\d{2}/.test(b.until) ? "until " + new Date(b.until + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" }) : b.until) : "");
-      return '<a class="btmp" href="' + esc(b.url) + '" target="_blank" rel="noopener">' + (until ? '<em>' + esc(until) + '</em>' : '<em>this week</em>') + '<b>' + esc(b.label) + '</b></a>';
-    }).join("") + '</div></div>';
+    if (tmp.length || pastBoards.length) out += '<div><div class="sec-h" style="padding:0 4px"><span class="lab">Boards for now</span>' + (pastBoards.length ? '<button type="button" class="txtbtn" data-act="archive">Looking back · ' + pastBoards.length + '</button>' : '') + '</div>' +
+      (tmp.length ? '<div class="boards-tmp">' + tmp.map(function (b) {
+        var until = b.untilLabel || (b.until ? (/^\d{4}-\d{2}-\d{2}/.test(b.until) ? "until " + new Date(b.until + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" }) : b.until) : "");
+        return '<a class="btmp" href="' + esc(b.url) + '" target="_blank" rel="noopener">' + (until ? '<em>' + esc(until) + '</em>' : '<em>this week</em>') + '<b>' + esc(b.label) + '</b></a>';
+      }).join("") + '</div>' : '') + '</div>';
     if (perm.length) out += '<div><div class="lab out">Always here</div><div class="boards-perm">' + perm.slice(0, 8).map(function (b) {
       var ic = BOARD_ICONS[b.icon || guessIcon(b.label)] || ["#2a2f45", "#e6e9f5", ""];
       return '<a class="bperm" href="' + esc(b.url) + '" target="_blank" rel="noopener"><span style="background:' + ic[0] + '">' + (ic[2] ? '<svg class="i" viewBox="0 0 24 24" style="stroke:' + ic[1] + '">' + ic[2] + '</svg>' : '<b style="color:' + ic[1] + ';font-family:var(--display);font-size:1.4rem">' + esc(String(b.label || "?")[0]) + '</b>') + '</span>' + esc(b.short || b.label) + '</a>';
     }).join("") + '</div></div>';
     return out;
+  }
+  function openArchive() {
+    var rows = pastBoards.slice().sort(function (x, y) { return String(y.until || y.at || "").localeCompare(String(x.until || x.at || "")); }).map(function (b) {
+      var when = b.until && /^\d{4}-\d{2}-\d{2}/.test(b.until) ? new Date(b.until + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : (b.note || "");
+      return '<a href="' + esc(b.url) + '" target="_blank" rel="noopener"><span><b style="display:block">' + esc(b.label) + '</b><small style="color:#9aa6c8">' + esc(when) + '</small></span>' + I.out + '</a>';
+    }).join("");
+    sheetFor = "archive"; sheetMode = "archive";
+    sheet.innerHTML = '<div class="grab"></div><div class="head"><div style="flex:1;min-width:0"><small>Boards</small><h3 id="sheet-title">Looking back</h3></div><button type="button" class="round" data-act="close" aria-label="Close">' + I.close + '</button></div><div class="scroll" id="sheet-scroll"><div class="links">' + rows + '</div></div>';
+    sheet.classList.add("on"); scrim.classList.add("on"); sheet.setAttribute("aria-hidden", "false");
+  }
+
+  // ---- Plans ahead (Jay, 23:36 26 October: "I want to be planning things more in advance") - six weeks, ideas to decide early ----
+  function mondayOf(dt) { var x = new Date(dt); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+  function aheadBlock(list, d) {
+    if (!list.length) return "";
+    var start = mondayOf(d), weeks = [];
+    for (var w = 0; w < 7; w++) { var m = new Date(start); m.setDate(start.getDate() + w * 7); weeks.push({ mon: m, items: [] }); }
+    var todayIso = isoDay(d);
+    list.forEach(function (x) {
+      if (!x.date || x.date < todayIso) return;
+      var dt = new Date(x.date + "T12:00:00"), idx = Math.floor((mondayOf(dt) - start) / (7 * 864e5));
+      if (idx >= 0 && idx < weeks.length) weeks[idx].items.push(x);
+    });
+    weeks.forEach(function (wk) { wk.items.sort(function (p, q) { return (p.date + (p.time || "")).localeCompare(q.date + (q.time || "")); }); });
+    var toDecide = list.filter(function (x) { return x.kind === "idea" && x.date >= todayIso; }).sort(function (p, q) { return String(p.decideBy || p.date).localeCompare(String(q.decideBy || q.date)); });
+    var next = toDecide[0];
+    var nextHtml = next ? wrap(next, "ahead-next", '<span class="an-k">Decide next' + (next.decideBy ? ' · by ' + esc(new Date(next.decideBy + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })) : '') + '</span><b>' + esc(next.label) + '</b><span class="an-s">' + esc([new Date(next.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }), next.why].filter(Boolean).join(" · ")) + '</span>') : "";
+    var cols = weeks.map(function (wk, i) {
+      var label = i === 0 ? "This week" : i === 1 ? "Next week" : "w/c " + wk.mon.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      var rows = wk.items.map(function (x) {
+        var dd = new Date(x.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short" });
+        var inner = '<span class="ad">' + esc(dd) + '</span><span class="al">' + esc(x.label) + '</span>';
+        return wrap(x, "aitem " + (x.kind || "booked"), inner);
+      }).join("");
+      var hasWeekend = wk.items.some(function (x) { var g = new Date(x.date + "T12:00:00").getDay(); return (g === 0 || g === 6) && x.kind !== "free"; });
+      if (!hasWeekend && i > 0) rows += '<div class="aitem free"><span class="ad">Sat</span><span class="al">Weekend free - fill it?</span></div>';
+      return '<div class="awk"><div class="awh">' + label + '</div>' + (rows || '<div class="aempty">Nothing yet</div>') + '</div>';
+    }).join("");
+    return '<section class="glass ahead"><div class="sec-h"><span class="lab">Plans ahead</span><span class="aside">' + (toDecide.length ? toDecide.length + " idea" + (toDecide.length === 1 ? "" : "s") + " to decide" : "") + '</span></div>' + nextHtml +
+      '<div class="aweeks">' + cols + '</div><div class="akey"><span><i class="k-b"></i>booked</span><span><i class="k-i"></i>idea - tap to decide</span><span><i class="k-f"></i>free</span></div></section>';
   }
 
   // =====================================================================================================
@@ -352,7 +399,8 @@
   function themeOf(c) {
     var base = typeof c.theme === "string" && THEMES[c.theme] ? THEMES[c.theme] : (THEMES[c.style] || THEMES[KIND_THEME[c.kind]] || THEMES.dawn);
     var t = Object.assign({}, base, (c.theme && typeof c.theme === "object") ? c.theme : {});
-    if (Array.isArray(t.bg)) t.bg = "linear-gradient(170deg," + t.bg.join(",") + ")";
+    if (Array.isArray(t.bg)) { t.fade = t.fade || t.bg[Math.min(1, t.bg.length - 1)]; t.bg = "linear-gradient(170deg," + t.bg.join(",") + ")"; }
+    t.fade = t.fade || t.top || "#0b1022";
     var L = t.light;
     t.soft = t.soft || (L ? "rgba(20,20,20,0.72)" : "rgba(255,255,255,0.82)");
     t.label = t.label || (L ? t.accent : "rgba(255,255,255,0.78)");
@@ -366,7 +414,11 @@
   }
   function motifSvg(t, c) {
     var a = t.accent, k = t.ink, m = c.motif || t.motif;
-    if (c.artSvg && /^<svg[\s>]/i.test(String(c.artSvg).trim())) return '<img class="motif" alt="" src="data:image/svg+xml;charset=utf-8,' + encodeURIComponent(c.artSvg) + '" style="' + esc(c.artStyle || "right:-40px;top:-30px;width:300px") + '">';
+    if (c.artSvg && /^<svg[\s>]/i.test(String(c.artSvg).trim())) {
+      var src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(c.artSvg);
+      // a post's own illustration sits in the space above its words and sizes itself to fit (art-top), unless the designer placed it
+      return c.artStyle ? '<img class="motif" alt="" src="' + src + '" style="' + esc(c.artStyle) + '">' : '<img class="motif art-top" alt="" src="' + src + '">';
+    }
     var S = {
       ball: '<svg class="motif" style="right:-110px;top:-130px;width:300px" viewBox="0 0 300 300" aria-hidden="true"><circle cx="150" cy="150" r="140" fill="#f7f5ea"/><circle cx="150" cy="150" r="140" fill="none" stroke="#d9d5c2" stroke-width="10" stroke-opacity="0.5"/>' + [[80, 190], [108, 214], [140, 230], [174, 232], [66, 158], [94, 180], [124, 198], [156, 204], [188, 204], [70, 126], [98, 148], [130, 166], [162, 174], [196, 174]].map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="9" fill="#e3dfcc"/>'; }).join("") + '</svg>',
       steam: '<svg class="motif" style="left:0;top:0;width:100%;height:240px" viewBox="0 0 390 230" preserveAspectRatio="none" aria-hidden="true"><path d="M60 230 C 30 180, 100 160, 70 110 S 90 40, 60 0" fill="none" stroke="#fff" stroke-opacity="0.2" stroke-width="14" stroke-linecap="round"/><path d="M190 230 C 160 175, 230 150, 200 100 S 220 30, 190 -10" fill="none" stroke="#fff" stroke-opacity="0.14" stroke-width="18" stroke-linecap="round"/><path d="M320 230 C 290 185, 360 165, 330 120 S 350 50, 320 10" fill="none" stroke="#fff" stroke-opacity="0.18" stroke-width="12" stroke-linecap="round"/></svg>',
@@ -422,7 +474,7 @@
     var right = swipeRight(c, lay), left = (c.swipe && c.swipe.left) || "Not now";
     var vars = "--p-ink:" + t.ink + ";--p-soft:" + t.soft + ";--p-label:" + t.label + ";--p-accent:" + t.accent + ";--p-accent-ink:" + t.accentInk + ";--p-chip:" + t.chip + ";--p-line:" + t.line + ";--p-bubble:" + t.bubble + ";--p-bubble-ink:" + t.bubbleInk + ";--p-rail:" + t.rail;
     var photo = safeUrl(c.image);
-    var bg = '<div class="bg" style="background:' + esc(t.bg) + '"></div>' + (photo ? '<div class="photo" style="background-image:url(&quot;' + esc(photo) + '&quot;)"></div>' : motifSvg(t, c));
+    var bg = '<div class="bg" style="background:' + esc(t.bg) + '"></div>' + (photo ? '<div class="photo" style="background-image:url(&quot;' + esc(photo) + '&quot;)"></div>' : motifSvg(t, c)) + '<div class="fade" style="--fade:' + esc(t.fade) + '"></div>';
     if (lay === "custom" && c.html) bg = '<div class="bg" style="background:' + esc(t.bg) + '"></div><iframe sandbox="" title="" aria-hidden="true" tabindex="-1" srcdoc="' + esc(c.html) + '"></iframe>';
     var label = c.label || [c.kind, c.due].filter(Boolean).join(" · ");
     var body = "";
@@ -452,17 +504,20 @@
     if (secHtml) body += '<div class="secs">' + secHtml + '</div>';
     body += '<span class="pstatus" id="s-' + esc(c.id) + '"></span>';
     var withLove = lay === "learn" || lay === "fun" || c.love;
-    var rail = '<div class="rail">' + (withLove ? '<button type="button" class="love" data-act="love" data-id="' + esc(c.id) + '" aria-pressed="' + Boolean(a.loved) + '" aria-label="Love it - more like this">' + I.heart + '</button>' : '') +
-      '<button type="button" data-act="chat" data-id="' + esc(c.id) + '" aria-label="Talk to the team about this">' + I.chat + (th.length ? '<span class="n">' + th.length + '</span>' : '') + '</button>' +
-      (c.more ? '<button type="button" data-act="more" data-id="' + esc(c.id) + '" aria-label="The detail">' + I.dots + '</button>' : '') + '</div>';
+    // the post's own tools sit in one row at the top, beside the history clock (Jay, 23:36 26 October: the side icons "don't align to the posts")
+    var tools = (withLove ? '<button type="button" class="tool love" data-act="love" data-id="' + esc(c.id) + '" aria-pressed="' + Boolean(a.loved) + '" aria-label="Love it - more like this">' + I.heart + '</button>' : '') +
+      '<button type="button" class="tool" data-act="chat" data-id="' + esc(c.id) + '" aria-label="Talk to the team about this">' + I.chat + (th.length ? '<span class="n">' + th.length + '</span>' : '') + '</button>' +
+      (c.more ? '<button type="button" class="tool" data-act="more" data-id="' + esc(c.id) + '" aria-label="The detail">' + I.dots + '</button>' : '') +
+      '<button type="button" class="tool" data-act="history" aria-label="Answered and done">' + I.hist + '</button>';
     return '<article class="post" id="p-' + esc(c.id) + '" data-id="' + esc(c.id) + '" data-top="' + esc(t.top) + '" data-right="' + esc(right) + '" data-left="' + esc(left) + '" data-love="' + (withLove ? 1 : 0) + '">' +
       '<div class="under r"><div><i>' + I.tick + '</i><b>' + esc(right) + '</b></div></div><div class="under l"><div><i>' + I.clock + '</i><b>' + esc(left) + '</b></div></div>' +
       '<div class="face" style="' + vars + '">' + bg +
-      '<div class="ptop"><span class="pill">' + (fresh ? '<span class="nw" id="new-' + esc(c.id) + '">New ·</span>' : '') + (i + 1) + ' of ' + n + '</span><button type="button" class="hist" data-act="history" aria-label="Answered and done">' + I.hist + '</button></div>' +
-      '<div class="pbody withrail">' + body + '</div>' + rail +
+      '<div class="ptop"><span class="pill">' + (fresh ? '<span class="nw" id="new-' + esc(c.id) + '">New ·</span>' : '') + (i + 1) + ' of ' + n + '</span><div class="tools">' + tools + '</div></div>' +
+      '<div class="pbody">' + body + '</div>' +
       '<div class="hints"><span>← ' + esc(left.toLowerCase()) + '</span><span>' + esc(right.toLowerCase()) + ' →</span></div></div></article>';
   }
   function btn(c, x, cls) {
+    if (x.more) return '<button type="button" class="' + cls + '" data-act="more" data-id="' + esc(c.id) + '">' + esc(x.label) + '</button>';
     if (x.copy) return '<button type="button" class="' + cls + '" data-act="copy" data-id="' + esc(c.id) + '">' + I.copy + esc(x.label) + '</button>';
     var u = safeUrl(x.url);
     if (u) return '<a class="' + cls + '" href="' + esc(u) + '" target="_blank" rel="noopener">' + (/^tel:/.test(x.url) ? I.phone : "") + esc(x.label) + (cls === "primary" ? I.out : "") + '</a>';
@@ -475,9 +530,19 @@
     if (!list.length) { feed.innerHTML = '<div class="caught"><h2>' + (lastError ? "Can't reach your team right now." : "All caught up.") + '</h2><p>' + (lastError ? esc(lastError) : "Nothing waiting. Go and do something you love - new posts land through the day.") + '</p><div class="row"><button type="button" class="btn ghost" data-act="history">' + I.hist + ' Answered and done</button></div></div>'; return; }
     feed.innerHTML = list.map(function (c, i) { return postHTML(c, i, list.length); }).join("") + '<div class="caught"><h2>That\'s everything for now.</h2><p>Swipe back up, or tell the team anything on your mind.</p><div class="row"><button type="button" class="btn ghost" data-act="history">' + I.hist + ' Answered and done</button></div></div>';
     if (watcher) { watcher.disconnect(); feed.querySelectorAll(".post").forEach(function (el) { watcher.observe(el); }); }
+    fitArt();
     if (focusId) { var el = document.getElementById("p-" + focusId); if (el) feed.scrollTop = el.offsetTop; }
     var first = feed.querySelector(".post"); if (first && !focusId) themeFrom(first);
   }
+
+  function fitArt() {
+    feed.querySelectorAll(".post").forEach(function (p) {
+      var first = p.querySelector(".pbody > *"); if (!first) return;
+      var y = first.getBoundingClientRect().top - p.getBoundingClientRect().top;
+      p.querySelector(".face").style.setProperty("--words", Math.round(y) + "px");
+    });
+  }
+  window.addEventListener("resize", function () { if (view === "feed") fitArt(); });
 
   // ---- swiping: right for done, left for not now - with a few seconds to undo ----
   (function () {
@@ -683,6 +748,7 @@
     else if (act === "backfeed") go("feed");
     else if (act === "refresh") { b.textContent = "Refreshing…"; load(); }
     else if (act === "day") { dayOpen = !dayOpen; renderHome(); }
+    else if (act === "archive") openArchive();
     else if (act === "dfy") { dfyOpen = !dfyOpen; renderHome(); }
     else if (act === "open" || act === "goto") {
       if (c && !answered(c) && live(c)) go("feed", id); else if (c) openSheet(id, "more");
