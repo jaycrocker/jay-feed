@@ -130,7 +130,7 @@
   }
   function horizonY() { return Math.round(Math.max(250, Math.min(320, H * 0.36))); }
   function place(altDeg, azDeg, hy, peak) {         // looking south: east on the left, west on the right
-    var x = W / 2 + (azDeg / 125) * (W / 2), top = Math.min(hy - 60, 178);   // stays below the greeting
+    var x = W / 2 + (azDeg / 125) * (W / 2), top = Math.min(hy - 60, 192);   // stays below the greeting
     var y = hy - (altDeg / Math.max(18, peak || 25)) * (hy - top);
     return [Math.max(26, Math.min(W - 26, x)), y];
   }

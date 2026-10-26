@@ -157,7 +157,7 @@
   function renderHome() {
     var hc = card("home"), h = (hc && hc.home) || {}, d = now();
     var hy = window.Sky ? Sky.horizonY() : 240, out = "";
-    out += '<header class="h-sky" style="height:' + (hy + 26) + 'px"><div class="h-hello"><small>' + esc(d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })) + '</small><h1>' + greeting(d) + '</h1><p>' + esc(h.headline || sunLine(d)) + '</p></div>' +
+    out += '<header class="h-sky" style="height:' + (hy + 26) + 'px"><div class="h-hello"><small>' + esc(d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })) + '</small><h1>' + greeting(d) + '</h1><p>' + esc(h.headline && !(h.day && h.day.date && h.day.date > isoDay(d)) ? h.headline : sunLine(d)) + '</p></div>' +
       (sky && sky.sunrise ? '<div class="h-times" style="bottom:' + (26 - 2) + 'px"><span>' + I.sunrise + hm(sky.sunrise) + '</span><span>' + hm(sky.sunset) + I.sunset + '</span></div>' : '') + '</header>';
     if (!hc) { feed.innerHTML = '<div class="home">' + out + '<section class="glass"><div class="lab">Home</div><p>Your team is setting this up - it fills with the next Morning.</p></section></div>'; return; }
     out += dayBlock(h, d);
@@ -184,6 +184,9 @@
   }
   function dayBlock(h, d) {
     var di = dayItems(h), items = di.items, t = d.getHours() * 60 + d.getMinutes();
+    var dayDate = (h.day || {}).date, todayIso = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+    var ahead = dayDate && dayDate > todayIso;   // the day written is tomorrow's: nothing on it has happened yet
+    if (ahead) t = -1;
     if (!items.length) {
       var nx = h.next; if (!nx) return "";
       return '<section class="glass"><div class="sec-h"><span class="lab">' + esc(nx.label || "Next") + '</span></div><div class="nn" style="margin-top:8px"><span class="k">NEXT</span><span class="t1">' + esc(nx.title || "") + '</span><time>' + esc(nx.time || "") + '</time>' + (nx.note ? '<span class="sub">' + fmt(nx.note) + '</span>' : '') + '</div></section>';
@@ -206,20 +209,22 @@
     if (nextItem && leaveAt !== null && leaveAt < nextItem.s && !nextItem.leave) nextItem = Object.assign({}, nextItem, { leave: hmm(leaveAt) });
     var nn = "";
     if (nowItem) nn += '<span class="k now">NOW</span><span class="t1">' + esc(nowItem.title) + (nowItem.where ? '<span style="font-weight:400;font-family:var(--body);font-size:0.95rem">, ' + esc(nowItem.where) + '</span>' : '') + '</span><time>to ' + hmm(nowItem.e) + '</time>';
+    else if (ahead) nn += '<span class="k now">NOW</span><span class="t1">' + (d.getHours() >= 17 || d.getHours() < 4 ? "Rest - tomorrow is ready" : "Free") + '</span><time></time>';
     else if (t < start) nn += '<span class="k now">NOW</span><span class="t1">The day hasn\'t started</span><time></time>';
     else if (!nextItem) nn += '<span class="k now">NOW</span><span class="t1">' + (t >= end ? "Rest. The day is done." : "Free time") + '</span><time></time>';
     else nn += '<span class="k now">NOW</span><span class="t1">Free until ' + hmm(nextItem.s) + '</span><time></time>';
-    if (nextItem) nn += '<span class="k">NEXT</span><span class="t2">' + esc(nextItem.title) + '</span><time>' + hmm(nextItem.s) + '</time>' + (nextItem.leave ? '<span class="sub">Leave ' + esc(nextItem.leave) + '</span>' : '');
+    if (nextItem) nn += '<span class="k">NEXT</span><span class="t2">' + (ahead ? new Date(dayDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long" }) + ": " : "") + esc(nextItem.title) + '</span><time>' + hmm(nextItem.s) + '</time>' + (nextItem.leave ? '<span class="sub">Leave ' + esc(nextItem.leave) + '</span>' : '');
     else if (h.tomorrow) nn += '<span class="k">NEXT</span><span class="t2">' + esc(h.tomorrow) + '</span><time></time>';
     var rows = items.map(function (x) {
       var cls = x.e <= t ? "past" : (x.s <= t && t < x.e ? "now" : ""), col = DAY_COLOURS[x.kind] || "#C9B8A6";
       var inner = '<time>' + (cls === "now" ? "NOW" : hmm(x.s)) + '</time><i style="background:' + col + '"></i><span><b>' + esc(x.title) + '</b>' + ((x.where || x.note) ? '<span class="s">' + esc([x.where, x.note].filter(Boolean).join(" · ")) + '</span>' : '') + '</span>';
       return wrap(x, "drow " + cls, inner);
     }).join("");
-    return '<section class="glass"><div class="sec-h"><span class="lab">Your day</span><button type="button" class="txtbtn" data-act="day" aria-expanded="' + dayOpen + '">' + (dayOpen ? "Fold away" : "See it all") + I.chev + '</button></div>' +
+    return '<section class="glass"><div class="sec-h"><span class="lab">' + (ahead ? "Tomorrow" : "Your day") + '</span><button type="button" class="txtbtn" data-act="day" aria-expanded="' + dayOpen + '">' + (dayOpen ? "Fold away" : "See it all") + I.chev + '</button></div>' +
       '<div class="dbar" aria-hidden="true">' + segs + '<span class="past" style="width:' + pos.toFixed(1) + '%"></span><span class="mark" style="left:calc(' + pos.toFixed(1) + '% - 1px)"></span></div>' +
       '<div class="nn">' + nn + '</div><div class="dlist' + (dayOpen ? " open" : "") + '">' + rows + '</div></section>';
   }
+  function isoDay(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
   function hmm(m) { m = ((m % 1440) + 1440) % 1440; return ("0" + Math.floor(m / 60)).slice(-2) + ":" + ("0" + (m % 60)).slice(-2); }
 
   var HL_ART = {
