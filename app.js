@@ -162,6 +162,7 @@
     if (!hc) { feed.innerHTML = '<div class="home">' + out + '<section class="glass"><div class="lab">Home</div><p>Your team is setting this up - it fills with the next Morning.</p></section></div>'; return; }
     out += dayBlock(h, d);
     (h.highlights || []).forEach(function (x) { if (x.until && daysTo(x.until) !== null && daysTo(x.until) < 0) return; out += highlight(x); });
+    out += foodBlock(h.food, d);
     out += teamBlock(h.team);
     out += todoBlock(h.todo || h.outstanding || [], h.todoMore || h.outstandingMore);
     out += aheadBlock(h.ahead || [], d);
@@ -248,6 +249,21 @@
       return '<div class="tline"><span class="ic" style="background:' + x[3][0] + ';color:' + x[3][1] + '">' + x[2] + '</span><div><b style="color:' + x[3][1] + '">' + x[1] + '</b><p>' + fmt(t[x[0]]) + '</p></div></div>';
     }).join("");
     return rows ? '<section class="glass soft"><span class="lab">From the team</span><div class="team">' + rows + '</div></section>' : "";
+  }
+  // ---- Food (Jay, 27 October: "a food plan for each day... specificity with the food... time, location, cost") ----
+  function foodBlock(f, d) {
+    if (!f || !(f.meals || []).length) return "";
+    var tomorrow = f.date && f.date > isoDay(d), nowM = d.getHours() * 60 + d.getMinutes(), total = 0, priced = false;
+    var rows = f.meals.slice().sort(function (p, q) { return (mins(p.time) || 0) - (mins(q.time) || 0); }).map(function (m) {
+      var c = Number(String(m.cost == null ? "" : m.cost).replace(/[^0-9.]/g, ""));
+      if (m.cost != null && m.cost !== "" && !isNaN(c)) { total += c; priced = true; }
+      var cost = m.cost == null || m.cost === "" ? "" : (typeof m.cost === "number" ? (m.cost === 0 ? "home" : "£" + (m.cost % 1 ? m.cost.toFixed(2) : m.cost)) : String(m.cost));
+      var past = !tomorrow && mins(m.end || m.time) !== null && mins(m.end || m.time) + 30 < nowM;
+      var inner = '<time>' + esc(m.time || "") + '</time><span><span class="fm">' + esc(m.meal || "") + '</span><b>' + esc(m.what || "") + '</b>' + (m.where ? '<span class="fw">' + esc(m.where) + (m.note ? " · " + esc(m.note) : "") + '</span>' : (m.note ? '<span class="fw">' + esc(m.note) + '</span>' : "")) + '</span>' + (cost ? '<span class="fc">' + esc(cost) + '</span>' : '<span></span>');
+      return wrap(m, past ? "past" : "", inner);
+    }).join("");
+    var aside = priced ? (total ? "about £" + (total % 1 ? total.toFixed(2) : total) + " today" : "all at home") : "";
+    return '<section class="glass"><div class="sec-h"><span class="lab">' + (tomorrow ? "Food tomorrow" : "Food today") + '</span><span class="aside">' + esc(aside) + '</span></div><div class="food">' + rows + '</div>' + (f.note ? '<div class="food-note">' + esc(f.note) + '</div>' : "") + '</section>';
   }
   function todoBlock(list, more) {
     if (!list.length) return "";
