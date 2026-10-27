@@ -89,7 +89,7 @@
   // ---------------- cards ----------------
   function live(c) { return !(c.expires && Date.parse(c.expires) < now().getTime()); }
   function answered(c) { return Boolean(c.answer && c.answer.choice); }
-  function isHome(c) { return c.kind === "Home" || c.id === "home"; }
+  function isHome(c) { return c.kind === "Home" || c.id === "home" || c.id === "remember"; }   // remember: the reminder at the top of Home, never a post
   function open() { return cards.filter(function (c) { return live(c) && !answered(c) && !isHome(c); }).sort(function (a, b) { return (b.order || 0) - (a.order || 0) || String(b.created || "").localeCompare(String(a.created || "")); }); }
   function thread(c) {
     var a = c.answer || {}; if (a.thread && a.thread.length) return a.thread;
@@ -154,12 +154,24 @@
     return f > 96 ? "A full moon tonight." : f < 4 ? "A new moon - the darkest sky of the month." : "The moon is " + f + "% lit tonight.";
   }
 
+  // Remember - card id "remember": {"remember":{"lines":[{"text","credit"?}]}} (feed.md). One line a day at the top of Home,
+  // chosen by the date so it changes every morning without a run; a tap shows the next.
+  var rememberNudge = 0;
+  function rememberBlock(d) {
+    var rc = card("remember"), lines = ((rc && rc.remember && rc.remember.lines) || []).filter(function (x) { return x && x.text; });
+    if (!lines.length) return "";
+    var day = Math.floor((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(d.getFullYear(), 0, 1)) / 864e5);
+    var x = lines[(day + rememberNudge) % lines.length];
+    return '<button type="button" class="remember" data-act="remember"><span class="lab">Remember</span><q>' + esc(x.text) + '</q>' + (x.credit ? '<small>' + esc(x.credit) + '</small>' : '') + '</button>';
+  }
+
   function renderHome() {
     var hc = card("home"), h = (hc && hc.home) || {}, d = now();
     var hy = window.Sky ? Sky.horizonY() : 240, out = "";
     out += '<header class="h-sky" style="height:' + (hy + 26) + 'px"><div class="h-hello"><small>' + esc(d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })) + '</small><h1>' + greeting(d) + '</h1><p>' + esc(h.headline && !(h.day && h.day.date && h.day.date > isoDay(d)) ? h.headline : sunLine(d)) + '</p></div>' +
       (sky && sky.sunrise ? '<div class="h-times" style="bottom:' + (26 - 2) + 'px"><span>' + I.sunrise + hm(sky.sunrise) + '</span><span>' + hm(sky.sunset) + I.sunset + '</span></div>' : '') + '</header>';
     if (!hc) { feed.innerHTML = '<div class="home">' + out + '<section class="glass"><div class="lab">Home</div><p>Your team is setting this up - it fills with the next Morning.</p></section></div>'; return; }
+    out += rememberBlock(d);
     out += dayBlock(h, d);
     (h.highlights || []).forEach(function (x) { if (x.until && daysTo(x.until) !== null && daysTo(x.until) < 0) return; out += highlight(x); });
     out += foodBlock(h.food, d);
@@ -764,6 +776,7 @@
     else if (act === "history") go("done");
     else if (act === "backfeed") go("feed");
     else if (act === "refresh") { b.textContent = "Refreshing…"; load(); }
+    else if (act === "remember") { rememberNudge++; renderHome(); }
     else if (act === "day") { dayOpen = !dayOpen; renderHome(); }
     else if (act === "archive") openArchive();
     else if (act === "dfy") { dfyOpen = !dfyOpen; renderHome(); }

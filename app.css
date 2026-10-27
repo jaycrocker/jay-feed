@@ -43,6 +43,9 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visib
 .bright-sky .h-hello small { opacity: 0.8; }
 
 .glass { background: var(--glass); border-radius: 26px; padding: 16px; -webkit-backdrop-filter: blur(22px) saturate(1.35); backdrop-filter: blur(22px) saturate(1.35); box-shadow: 0 10px 30px rgba(20,10,0,0.08), inset 0 0 0 1px var(--line); }
+.remember { display: grid; gap: 8px; width: 100%; text-align: left; border: 0; cursor: pointer; color: var(--ink); padding: 18px 18px 16px; border-radius: 26px; background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(1.35); backdrop-filter: blur(22px) saturate(1.35); box-shadow: 0 10px 30px rgba(20,10,0,0.08), inset 0 0 0 1px var(--line); }
+.remember q { font-family: var(--serif); font-size: 1.32rem; line-height: 1.25; quotes: none; text-wrap: pretty; }
+.remember small { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--label); }
 .glass.soft { background: var(--glass2); }
 .sec-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 28px; }
 .lab { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--label); }

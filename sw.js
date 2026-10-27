@@ -1,7 +1,7 @@
 // Keeps the app's screens on the phone so it opens instantly. Never stores the feed's data - that comes fresh
 // from Jay's Switchboard each time.
-const SHELL = 'jay-feed-v9';
-const FILES = ['./', './index.html', './app.css?v=8', './sky.js?v=7', './app.js?v=8', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const SHELL = 'jay-feed-v10';
+const FILES = ['./', './index.html', './app.css?v=9', './sky.js?v=7', './app.js?v=9', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== SHELL).map((k) => caches.delete(k)))));
